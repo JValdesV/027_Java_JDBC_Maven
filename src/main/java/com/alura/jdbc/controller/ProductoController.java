@@ -16,8 +16,6 @@ public class ProductoController {
 
 	public int modificar(String nombre, String descripcion, Integer id) throws SQLException {
 		
-		int respuesta;
-		
 		Connection con = new ConnectionFactory().recuperaConexion();
 		String sql = "UPDATE PRODUCTO SET NOMBRE = ?, DESCRIPCION = ? WHERE ID = ?";
 		
@@ -26,7 +24,8 @@ public class ProductoController {
 		pt.setString(2, descripcion);
 		pt.setInt(3, id);
 		
-		respuesta = pt.executeUpdate();
+		int respuesta = pt.executeUpdate();
+		//int respuesta = pt.getUpdateCount();
 		pt.close();
 		con.close();
 		
@@ -38,8 +37,12 @@ public class ProductoController {
 		
 		//Creacion de la operacion a la base datos
 		Connection con = new ConnectionFactory().recuperaConexion();
-		Statement statement = con.createStatement();
-		statement.execute("DELETE FROM PRODUCTO WHERE ID = "+ id);
+		String sqlQuery = "DELETE FROM PRODUCTO WHERE ID = ?";
+		PreparedStatement statement = con.prepareStatement(sqlQuery);
+		statement.setInt(1, id);
+		
+		statement.execute();
+		
 		statement.close();
 		con.close();
 		return statement.getUpdateCount();
@@ -80,12 +83,14 @@ public class ProductoController {
     public void guardar(Map<String, String> producto) throws SQLException {
 		Connection con = new ConnectionFactory().recuperaConexion();
 		
-		Statement statement = con.createStatement();
+		PreparedStatement statement = con.prepareStatement("insert into producto(nombre, descripcion, cantidad)" 
+				+ " values(?,?,?)",Statement.RETURN_GENERATED_KEYS); 
 		
-		statement.execute("insert into producto(nombre, descripcion, cantidad) "
-						+ " values('" + producto.get("NOMBRE") + "','" 
-						+ producto.get("DESCRIPCION") + "', "
-						+ producto.get("CANTIDAD")+")", statement.RETURN_GENERATED_KEYS);
+		statement.setString(1, producto.get("NOMBRE"));
+		statement.setString(2, producto.get("DESCRIPCION"));
+		statement.setInt(3, Integer.valueOf(producto.get("CANTIDAD")));
+		
+		statement.execute();
 		
 		ResultSet resultset = statement.getGeneratedKeys();
     	
