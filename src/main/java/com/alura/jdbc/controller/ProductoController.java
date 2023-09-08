@@ -35,17 +35,24 @@ public class ProductoController {
 
 	public int eliminar(Integer id) throws SQLException {
 		
+		int resultado;
+		
 		//Creacion de la operacion a la base datos
 		Connection con = new ConnectionFactory().recuperaConexion();
+		
 		String sqlQuery = "DELETE FROM PRODUCTO WHERE ID = ?";
+		
 		PreparedStatement statement = con.prepareStatement(sqlQuery);
 		statement.setInt(1, id);
 		
-		statement.execute();
+		statement.executeUpdate();
+		
+		resultado = statement.getUpdateCount();
 		
 		statement.close();
 		con.close();
-		return statement.getUpdateCount();
+		
+		return resultado;
 		
 		
 	}
@@ -81,14 +88,51 @@ public class ProductoController {
 	}
 
     public void guardar(Map<String, String> producto) throws SQLException {
+    	
+    	String nombre = producto.get("NOMBRE");
+    	String descripcion = producto.get("DESCRIPCION");
+    	Integer cantidad = Integer.valueOf(producto.get("CANTIDAD"));
+    	Integer maximaCantidad = 50;
+    	
 		Connection con = new ConnectionFactory().recuperaConexion();
+		//Aqui desactivamos el autocommit de la transaccion
+		//Se utiliza para ejecutar instrucciones mas complejas
+		con.setAutoCommit(false);
+		
 		
 		PreparedStatement statement = con.prepareStatement("insert into producto(nombre, descripcion, cantidad)" 
 				+ " values(?,?,?)",Statement.RETURN_GENERATED_KEYS); 
+		//Englobamos las instrucciones que son potenciales de una exception para trabajar con transacciones
+		try {
+			do {
+				int cantidadParaGuardar = Math.min(cantidad, maximaCantidad);
+				ejecutaRegistro(nombre, descripcion, cantidadParaGuardar, statement);
+				cantidad -= maximaCantidad;
+			} while (cantidad>0);
+			
+			con.commit();
+			System.out.println("La transacción se llevó a cabo.");
+			
+		} catch (Exception e) {
+			con.rollback();
+			System.out.println("La transacción no se llevó a cabo: "+ e.getMessage());
+		}
 		
-		statement.setString(1, producto.get("NOMBRE"));
-		statement.setString(2, producto.get("DESCRIPCION"));
-		statement.setInt(3, Integer.valueOf(producto.get("CANTIDAD")));
+		statement.close();
+		con.close();
+    	
+	}
+
+	private void ejecutaRegistro(String nombre, String descripcion, Integer cantidad, PreparedStatement statement)
+			throws SQLException {
+		
+		if(cantidad>=5) {
+			throw new RuntimeException();
+		}
+		
+		statement.setString(1, nombre);
+		statement.setString(2, descripcion);
+		statement.setInt(3, cantidad);
 		
 		statement.execute();
 		
@@ -99,8 +143,6 @@ public class ProductoController {
 					String.format("El producto insertado tiene como ID %d", resultset.getInt(1)));	
 			
 		}
-    	
-    	
 	}
 
     public void otraFormaEliminar() {
