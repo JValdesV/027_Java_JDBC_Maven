@@ -16,20 +16,22 @@ public class ProductoController {
 
 	public int modificar(String nombre, String descripcion, Integer id) throws SQLException {
 		
-		Connection con = new ConnectionFactory().recuperaConexion();
-		String sql = "UPDATE PRODUCTO SET NOMBRE = ?, DESCRIPCION = ? WHERE ID = ?";
-		
-		PreparedStatement pt = con.prepareStatement(sql);
-		pt.setString(1, nombre);
-		pt.setString(2, descripcion);
-		pt.setInt(3, id);
-		
-		int respuesta = pt.executeUpdate();
-		//int respuesta = pt.getUpdateCount();
-		pt.close();
-		con.close();
-		
-		return respuesta;
+		final Connection con = new ConnectionFactory().recuperaConexion();
+		try(con){
+			String sql = "UPDATE PRODUCTO SET NOMBRE = ?, DESCRIPCION = ? WHERE ID = ?";
+			
+			PreparedStatement pt = con.prepareStatement(sql);
+			try(pt){
+				pt.setString(1, nombre);
+				pt.setString(2, descripcion);
+				pt.setInt(3, id);
+				
+				int respuesta = pt.executeUpdate();
+				//int respuesta = pt.getUpdateCount();
+					
+				return respuesta;
+			}
+		}
 		
 	}
 
@@ -38,53 +40,58 @@ public class ProductoController {
 		int resultado;
 		
 		//Creacion de la operacion a la base datos
-		Connection con = new ConnectionFactory().recuperaConexion();
-		
-		String sqlQuery = "DELETE FROM PRODUCTO WHERE ID = ?";
-		
-		PreparedStatement statement = con.prepareStatement(sqlQuery);
-		statement.setInt(1, id);
-		
-		statement.executeUpdate();
-		
-		resultado = statement.getUpdateCount();
-		
-		statement.close();
-		con.close();
-		
-		return resultado;
+		final Connection con = new ConnectionFactory().recuperaConexion();
+		try(con){
+			
+			String sqlQuery = "DELETE FROM PRODUCTO WHERE ID = ?";
+			
+			PreparedStatement statement = con.prepareStatement(sqlQuery);
+			try(statement){
+				
+				statement.setInt(1, id);
+				statement.executeUpdate();
+				resultado = statement.getUpdateCount();
+				
+				return resultado;
+			}
+		}
 		
 		
 	}
 
 	public List<Map<String,String>> listar() throws SQLException {
 		
-		Connection con = new ConnectionFactory().recuperaConexion();
+		final Connection con = new ConnectionFactory().recuperaConexion();
 		
-		
-		Statement statement = con.createStatement();
-		
-		String sql = "select * from producto";
-		
-		Boolean result = statement.execute(sql);
-		
-		ResultSet resultSet = statement.getResultSet();
-		
-		List<Map<String,String>> resultado = new ArrayList<>();
-		
-		while(resultSet.next()) {
-			Map<String,String> fila = new HashMap<>();
-			fila.put("ID", String.valueOf(resultSet.getInt(1)));
-			fila.put("NOMBRE", resultSet.getString(2));
-			fila.put("DESCRIPCION", resultSet.getString(3));
-			fila.put("CANTIDAD", String.valueOf(resultSet.getInt(4)));
+		try(con){
 			
-			resultado.add(fila);
+			final Statement statement = con.createStatement();
+			
+			try(statement){
+				
+				String sql = "select * from producto";
+				
+				Boolean result = statement.execute(sql);
+				
+				ResultSet resultSet = statement.getResultSet();
+				
+				List<Map<String,String>> resultado = new ArrayList<>();
+				
+				while(resultSet.next()) {
+					Map<String,String> fila = new HashMap<>();
+					fila.put("ID", String.valueOf(resultSet.getInt(1)));
+					fila.put("NOMBRE", resultSet.getString(2));
+					fila.put("DESCRIPCION", resultSet.getString(3));
+					fila.put("CANTIDAD", String.valueOf(resultSet.getInt(4)));
+					
+					resultado.add(fila);
+				}
+			
+				return resultado;
+			}
+			
 		}
 		
-		con.close();
-		
-		return resultado;
 	}
 
     public void guardar(Map<String, String> producto) throws SQLException {
@@ -100,10 +107,10 @@ public class ProductoController {
 		con.setAutoCommit(false);
 		
 		
-		PreparedStatement statement = con.prepareStatement("insert into producto(nombre, descripcion, cantidad)" 
+		final PreparedStatement statement = con.prepareStatement("insert into producto(nombre, descripcion, cantidad)" 
 				+ " values(?,?,?)",Statement.RETURN_GENERATED_KEYS); 
 		//Englobamos las instrucciones que son potenciales de una exception para trabajar con transacciones
-		try {
+		try(statement) {
 			do {
 				int cantidadParaGuardar = Math.min(cantidad, maximaCantidad);
 				ejecutaRegistro(nombre, descripcion, cantidadParaGuardar, statement);
@@ -118,8 +125,6 @@ public class ProductoController {
 			System.out.println("La transacción no se llevó a cabo: "+ e.getMessage());
 		}
 		
-		statement.close();
-		con.close();
     	
 	}
 
@@ -136,13 +141,15 @@ public class ProductoController {
 		
 		statement.execute();
 		
-		ResultSet resultset = statement.getGeneratedKeys();
-    	
-		while(resultset.next()) {
+		final ResultSet resultset = statement.getGeneratedKeys();
+    	try(resultset) {
+    		while(resultset.next()) {
 			System.out.println(
 					String.format("El producto insertado tiene como ID %d", resultset.getInt(1)));	
 			
-		}
+    		}
+    	}
+		
 	}
 
     public void otraFormaEliminar() {
