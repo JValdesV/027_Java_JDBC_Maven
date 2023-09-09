@@ -13,10 +13,13 @@ public class ConnectionFactory {
 	private DataSource datasource;
 	
 	public ConnectionFactory() {
+		//Definimos la creacion de un pool de conexiones con las credenciales standard de url de bd, usuario y password.
 		var pooledDataSource = new ComboPooledDataSource();
 		pooledDataSource.setJdbcUrl("jdbc:mysql://localhost/control_de_stock?useTimeZone=true&serverTimeZone=UTC");
 		pooledDataSource.setUser("root");
 		pooledDataSource.setPassword("admin");
+		//Definimos la cantidad de conexiones
+		pooledDataSource.setMaxPoolSize(10);
 		
 		this.datasource = pooledDataSource;
 		
@@ -27,9 +30,6 @@ public class ConnectionFactory {
 	public Connection recuperaConexion() throws SQLException{
 				
 		return this.datasource.getConnection();
-		
-		
-		
 		
 	}
 
