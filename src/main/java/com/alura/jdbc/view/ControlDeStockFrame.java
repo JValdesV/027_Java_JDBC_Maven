@@ -19,6 +19,9 @@ import javax.swing.table.DefaultTableModel;
 
 import com.alura.jdbc.controller.CategoriaController;
 import com.alura.jdbc.controller.ProductoController;
+import com.alura.jdbc.factory.ConnectionFactory;
+import com.alura.jdbc.modelo.Producto;
+import com.alura.jdbc.persistencia.ProductoDAO;
 
 public class ControlDeStockFrame extends JFrame {
 
@@ -38,7 +41,7 @@ public class ControlDeStockFrame extends JFrame {
 
         this.categoriaController = new CategoriaController();
         this.productoController = new ProductoController();
-
+        
         Container container = getContentPane();
         setLayout(null);
 
@@ -182,21 +185,21 @@ public class ControlDeStockFrame extends JFrame {
             JOptionPane.showMessageDialog(this, "Por favor, elije un item");
             return;
         }
-
+    	
     	
 		Optional.ofNullable(modelo.getValueAt(tabla.getSelectedRow(), tabla.getSelectedColumn()))
                 .ifPresentOrElse(fila -> {
-                	Integer id = Integer.valueOf(modelo.getValueAt(tabla.getSelectedRow(), 0).toString());
-                    String nombre = (String) modelo.getValueAt(tabla.getSelectedRow(), 1);
-                    String descripcion = (String) modelo.getValueAt(tabla.getSelectedRow(), 2);
+                	
+                	Producto producto = new Producto();
+                	
+                	producto.setId(Integer.parseInt(modelo.getValueAt(tabla.getSelectedRow(), 0).toString()));
+                	producto.setNombre(modelo.getValueAt(tabla.getSelectedRow(),1).toString());
+                	producto.setDescripcion(modelo.getValueAt(tabla.getSelectedRow(), 2).toString());
+                	producto.setCantidad(Integer.parseInt(modelo.getValueAt(tabla.getSelectedRow(), 3).toString()));
+                	
+                	
                     int respuesta = 0;
-                    try {
-                    	respuesta = this.productoController.modificar(nombre, descripcion, id);
-					} catch (SQLException e) {
-						// TODO Auto-generated catch block
-						//e.printStackTrace();
-						throw new RuntimeException();
-					}
+                    respuesta = this.productoController.modificar(producto);
                     JOptionPane.showMessageDialog(null, "Respuesta: "+ respuesta);
                 }, () -> JOptionPane.showMessageDialog(this, " Por favor, elije un item"));
     }
@@ -211,12 +214,7 @@ public class ControlDeStockFrame extends JFrame {
                 .ifPresentOrElse(fila -> {
                     Integer id = Integer.valueOf(modelo.getValueAt(tabla.getSelectedRow(), 0).toString());
                     int cantidad = 0;
-                    try {
-						cantidad = this.productoController.eliminar(id);
-					} catch (SQLException e) {
-						// TODO Auto-generated catch block
-						throw new RuntimeException(e);
-					}
+                    cantidad = this.productoController.eliminar(id);
 
                     modelo.removeRow(tabla.getSelectedRow());
 
@@ -225,22 +223,13 @@ public class ControlDeStockFrame extends JFrame {
     }
 
     private void cargarTabla() {
-        try {
-			var productos = this.productoController.listar();
-			
-			try {
-	            productos.forEach(producto -> modelo.addRow(new Object[] { producto.get("ID"), producto.get("NOMBRE"),
-	            		producto.get("DESCRIPCION"), producto.get("CANTIDAD")}));
-	        } catch (Exception e) {
-	            throw e;
-	        }
-			
-			
-			
-			
-		} catch (SQLException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+        var productos = this.productoController.listar();
+		
+		try {
+		    productos.forEach(producto -> modelo.addRow(new Object[] { producto.getId(), producto.getNombre(),
+		    		producto.getDescripcion(), producto.getCantidad()}));
+		} catch (Exception e) {
+		    throw new RuntimeException(e);
 		}
     	
 
@@ -263,21 +252,18 @@ public class ControlDeStockFrame extends JFrame {
             return;
         }
 
-        // TODO
-        var producto = new HashMap<String,String>();
-        producto.put("NOMBRE", textoNombre.getText());
-        producto.put("DESCRIPCION", textoDescripcion.getText());
-        producto.put("CANTIDAD", String.valueOf(cantidadInt));
+        //Se crea un objeto de tipo producto y se encapsulan los parametros
+        var producto = new Producto();
+        producto.setNombre(textoNombre.getText());
+        producto.setDescripcion(textoDescripcion.getText());
+        producto.setCantidad(cantidadInt);
+        
+        System.out.println("Frame: "+producto.toString());
+        
         
         var categoria = comboCategoria.getSelectedItem();
 
-        try {
-			this.productoController.guardar(producto);
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-			throw new RuntimeException(e);
-		}
+        this.productoController.guardar(producto);
 
         JOptionPane.showMessageDialog(this, "Registrado con éxito!");
 
