@@ -21,8 +21,8 @@ public class ProductoDAO {
 		
     	try(con){
     		System.out.println(con.isClosed());
-    		final PreparedStatement statement = con.prepareStatement("insert into producto(nombre, descripcion, cantidad)" 
-    				+ " values(?,?,?)",Statement.RETURN_GENERATED_KEYS); 
+    		final PreparedStatement statement = con.prepareStatement("insert into producto(nombre, descripcion, cantidad, categoria_id)" 
+    				+ " values(?,?,?,?)",Statement.RETURN_GENERATED_KEYS); 
     		//Englobamos las instrucciones que son potenciales de una exception para trabajar con transacciones
     		try(statement) {
     			 ejecutaRegistro(producto, statement);
@@ -39,6 +39,7 @@ public class ProductoDAO {
 		statement.setString(1, producto.getNombre());
 		statement.setString(2, producto.getDescripcion());
 		statement.setInt(3, producto.getCantidad());
+		statement.setInt(4,  producto.getCategoriaId());
 		
 		statement.execute();
 		
@@ -144,6 +145,42 @@ public class ProductoDAO {
 	    } catch (SQLException e) {
 	        throw new RuntimeException(e);
 	    }
+	}
+
+	public List<Producto> listar(Integer id) {
+		List<Producto> resultado = new ArrayList<>(); 
+				
+				final Connection con = new ConnectionFactory().recuperaConexion();
+			
+				
+				try(con){
+					
+					String sqlQuery = "select * from producto where categoria_id = ?";
+					final PreparedStatement statement = con.prepareStatement(sqlQuery);
+					
+					try(statement){
+						
+						statement.setInt(1, id);
+						statement.execute();
+						
+						ResultSet resultSet = statement.getResultSet();
+						
+						while(resultSet.next()) {
+							Producto fila = new Producto();
+							fila.setId(resultSet.getInt(1));
+							fila.setNombre(resultSet.getString(2));
+							fila.setDescripcion(resultSet.getString(3));
+							fila.setCantidad(resultSet.getInt(4));
+							
+							resultado.add(fila);
+						}
+					
+						return resultado;
+					}
+					
+				}catch (SQLException e) {
+					throw new RuntimeException(e);
+				}
 	}
 	
 	
